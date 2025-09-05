@@ -1,0 +1,26 @@
+{
+  "name": "mission-4",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "client": "npm run dev --prefix frontend",
+    "server": "npm run start --prefix backend",
+    "dev": "concurrently \"npm run client\" \"npm run server\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shane-chapman-23/mission-4.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/shane-chapman-23/mission-4/issues"
+  },
+  "homepage": "https://github.com/shane-chapman-23/mission-4#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
