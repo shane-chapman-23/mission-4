@@ -7,6 +7,7 @@ const chatRoutes = require("./routes/chatRoutes");
 const app = express();
 
 configureMiddleware(app);
+
 app.use("/chat", chatRoutes);
 
 const PORT = process.env.PORT || 5000;
