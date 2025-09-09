@@ -9,20 +9,18 @@ export default function Chatbot() {
     e.preventDefault();
     if (!userInput.trim()) return;
 
-    const newMessages = [...messages, {role: "user", content: userInput}];
-    setMessages(newMessages);
-    setUserInput("");
-
     const res = await fetch("http://localhost:5000/chat/", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({messages: newMessages}),
+      body: JSON.stringify({message: userInput}),
     });
 
     const data = await res.json();
-    setMessages((prev) => [...prev, {role: "assistant", content: data.reply}]);
 
-    console.log(messages);
+    setUserInput("");
+    setMessages(data.history);
+
+    console.log(data.history);
   };
 
   // Scroll to bottom whenever messages change
