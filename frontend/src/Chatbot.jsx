@@ -4,23 +4,55 @@ export default function Chatbot() {
   const [messages, setMessages] = useState([]);
   const [userInput, setUserInput] = useState("");
   const messagesEndRef = useRef(null);
+  const didInit = useRef(false);
+
+  useEffect(() => {
+    async function initializeChat() {
+      if (didInit.current) return;
+      didInit.current = true;
+
+      const resGet = await fetch("http://localhost:5000/chat/");
+      const currentHistory = await resGet.json();
+
+      // If there’s previous history, summarize
+      if (currentHistory.history.length > 1) {
+        await fetch("http://localhost:5000/chat/summarize", {method: "POST"});
+      }
+
+      // Generate assistant greeting
+      const res = await fetch("http://localhost:5000/chat/", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({message: ""}),
+      });
+
+      const data = await res.json();
+      setMessages(data.history || []);
+    }
+
+    initializeChat();
+  }, []);
 
   const handleUserInputSubmit = async (e) => {
     e.preventDefault();
     if (!userInput.trim()) return;
 
+    const messageToSend = userInput;
+    setUserInput("");
+
+    // Only append to frontend if non-empty
+    if (messageToSend.trim() !== "") {
+      setMessages([...messages, {role: "user", content: messageToSend}]);
+    }
+
     const res = await fetch("http://localhost:5000/chat/", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({message: userInput}),
+      body: JSON.stringify({message: messageToSend}),
     });
 
     const data = await res.json();
-
-    setUserInput("");
-    setMessages(data.history);
-
-    console.log(data.history);
+    setMessages(data.history || []);
   };
 
   // Scroll to bottom whenever messages change
@@ -54,21 +86,22 @@ export default function Chatbot() {
           flexDirection: "column",
         }}
       >
-        {messages.length === 0 && (
+        {Array.isArray(messages) && messages.length === 0 && (
           <div style={{color: "#888"}}>No messages yet.</div>
         )}
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            style={{
-              textAlign: msg.role === "user" ? "right" : "left",
-              margin: "4px 0",
-            }}
-          >
-            <strong>{msg.role === "user" ? "You" : "Tina"}:</strong>{" "}
-            {msg.content}
-          </div>
-        ))}
+        {Array.isArray(messages) &&
+          messages.map((msg, i) => (
+            <div
+              key={i}
+              style={{
+                textAlign: msg.role === "user" ? "right" : "left",
+                margin: "4px 0",
+              }}
+            >
+              <strong>{msg.role === "user" ? "You" : "Tina"}:</strong>{" "}
+              {msg.content}
+            </div>
+          ))}
         <div ref={messagesEndRef} />
       </div>
       <form onSubmit={handleUserInputSubmit} style={{display: "flex", gap: 8}}>
