@@ -79,7 +79,3 @@ docker compose up
 1. Open the app in your browser.
 2. Enter your car make and model.
 3. Receive the recommended insurance policy.
-
-## License
-
-[MIT](LICENSE)
