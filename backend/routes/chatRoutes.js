@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
+
 const {getOpenAIResponse} = require("../services/openaiService");
+
 const {
   updateHistory,
   getHistory,
@@ -8,16 +10,17 @@ const {
   clearHistory,
 } = require("../history/chatHistory");
 
+// Get chat history
 router.get("/", async (req, res) => {
-  const chatHistory = getHistory();
-  res.json({history: filterHistory(chatHistory)});
+  res.json({history: getFilteredHistory()});
 });
 
+//Post message
 router.post("/", async (req, res) => {
   const {message} = req.body;
 
   // Only reject undefined/null, allow empty string
-  if (message === undefined || message === null) {
+  if (message === null) {
     return res.status(400).json({error: "No message provided"});
   }
 
@@ -25,20 +28,16 @@ router.post("/", async (req, res) => {
     // Only add to history if it’s not empty
     if (message.trim() !== "") updateHistory("user", message);
 
-    const chatHistory = getHistory();
-    console.log(chatHistory);
-    const reply = await getOpenAIResponse(chatHistory);
-
+    const reply = await getOpenAIResponse(getHistory());
     updateHistory("assistant", reply);
-
-    const updatedChatHistory = getHistory();
-    res.json({history: filterHistory(updatedChatHistory)});
+    res.json({history: getFilteredHistory()});
   } catch (err) {
     console.error(err);
     res.status(500).json({error: "Failed to get response from OpenAI"});
   }
 });
 
+//Summarize history
 router.post("/summarize", async (req, res) => {
   try {
     const chatHistory = getHistory();
@@ -82,5 +81,11 @@ router.post("/summarize", async (req, res) => {
     res.status(500).json({error: "Failed to summarize chat history"});
   }
 });
+
+//Helpers
+
+function getFilteredHistory() {
+  return filterHistory(getHistory());
+}
 
 module.exports = router;

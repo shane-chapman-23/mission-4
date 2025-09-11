@@ -6,28 +6,41 @@ export default function Chatbot() {
   const messagesEndRef = useRef(null);
   const didInit = useRef(false);
 
+  const CHAT_API_URL = "http://localhost:5000/chat/";
+
+  async function fetchHistory() {
+    const res = await fetch(CHAT_API_URL);
+    const {history = []} = await res.json();
+    return history;
+  }
+
+  async function summarizeHistory() {
+    await fetch(`${CHAT_API_URL}summarize`, {method: "POST"});
+  }
+
+  async function requestAIResponse(message = "") {
+    const res = await fetch(CHAT_API_URL, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({message: message}),
+    });
+    return res.json();
+  }
+
   useEffect(() => {
     async function initializeChat() {
       if (didInit.current) return;
       didInit.current = true;
 
-      const resGet = await fetch("http://localhost:5000/chat/");
-      const currentHistory = await resGet.json();
-
       // If there’s previous history, summarize
-      if (currentHistory.history.length > 1) {
-        await fetch("http://localhost:5000/chat/summarize", {method: "POST"});
+      const history = await fetchHistory();
+      if (history.length > 1) {
+        await summarizeHistory();
       }
 
-      // Generate assistant greeting
-      const res = await fetch("http://localhost:5000/chat/", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({message: ""}),
-      });
-
-      const data = await res.json();
-      setMessages(data.history || []);
+      // Request AI greeting
+      const data = await requestAIResponse();
+      setMessages(data.history ?? []);
     }
 
     initializeChat();
@@ -39,20 +52,10 @@ export default function Chatbot() {
 
     const messageToSend = userInput;
     setUserInput("");
+    setMessages((prev) => [...prev, {role: "user", content: messageToSend}]);
 
-    // Only append to frontend if non-empty
-    if (messageToSend.trim() !== "") {
-      setMessages([...messages, {role: "user", content: messageToSend}]);
-    }
-
-    const res = await fetch("http://localhost:5000/chat/", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({message: messageToSend}),
-    });
-
-    const data = await res.json();
-    setMessages(data.history || []);
+    const data = await requestAIResponse(messageToSend);
+    setMessages(data.history ?? []);
   };
 
   // Scroll to bottom whenever messages change
@@ -86,22 +89,21 @@ export default function Chatbot() {
           flexDirection: "column",
         }}
       >
-        {Array.isArray(messages) && messages.length === 0 && (
+        {messages.length === 0 && (
           <div style={{color: "#888"}}>No messages yet.</div>
         )}
-        {Array.isArray(messages) &&
-          messages.map((msg, i) => (
-            <div
-              key={i}
-              style={{
-                textAlign: msg.role === "user" ? "right" : "left",
-                margin: "4px 0",
-              }}
-            >
-              <strong>{msg.role === "user" ? "You" : "Tina"}:</strong>{" "}
-              {msg.content}
-            </div>
-          ))}
+        {messages.map((msg, i) => (
+          <div
+            key={i}
+            style={{
+              textAlign: msg.role === "user" ? "right" : "left",
+              margin: "4px 0",
+            }}
+          >
+            <strong>{msg.role === "user" ? "You" : "Tina"}:</strong>{" "}
+            {msg.content}
+          </div>
+        ))}
         <div ref={messagesEndRef} />
       </div>
       <form onSubmit={handleUserInputSubmit} style={{display: "flex", gap: 8}}>
