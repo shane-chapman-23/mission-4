@@ -8,12 +8,6 @@ export default function Chatbot() {
 
   const CHAT_API_URL = "http://localhost:5000/chat/";
 
-  async function fetchHistory() {
-    const res = await fetch(CHAT_API_URL);
-    const {history = []} = await res.json();
-    return history;
-  }
-
   async function summarizeHistory() {
     await fetch(`${CHAT_API_URL}summarize`, {method: "POST"});
   }
@@ -33,10 +27,7 @@ export default function Chatbot() {
       didInit.current = true;
 
       // If there’s previous history, summarize
-      const history = await fetchHistory();
-      if (history.length > 1) {
-        await summarizeHistory();
-      }
+      await summarizeHistory();
 
       // Request AI greeting
       const data = await requestAIResponse();
@@ -73,18 +64,18 @@ export default function Chatbot() {
         padding: 16,
         display: "flex",
         flexDirection: "column",
-        height: "500px", // set a fixed height for the chat
+        height: "500px",
       }}
     >
       <h1>Tina</h1>
       <div
         style={{
-          flex: 1, // take up remaining space
+          flex: 1,
           marginBottom: 16,
           background: "#f9f9f9",
           padding: 8,
           borderRadius: 4,
-          overflowY: "auto", // make it scrollable
+          overflowY: "auto",
           display: "flex",
           flexDirection: "column",
         }}

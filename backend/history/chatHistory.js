@@ -39,7 +39,7 @@ function getHistory() {
   return chatHistory;
 }
 
-function filterHistory() {
+function getFilteredHistory() {
   return chatHistory.filter((msg) => msg.role !== "system");
 }
 
@@ -47,5 +47,5 @@ module.exports = {
   updateHistory,
   clearHistory,
   getHistory,
-  filterHistory,
+  getFilteredHistory,
 };

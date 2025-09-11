@@ -6,30 +6,27 @@ const {getOpenAIResponse} = require("../services/openaiService");
 const {
   updateHistory,
   getHistory,
-  filterHistory,
+  getFilteredHistory,
   clearHistory,
 } = require("../history/chatHistory");
 
-// Get chat history
+//================Get chat history===================
 router.get("/", async (req, res) => {
   res.json({history: getFilteredHistory()});
 });
 
-//Post message
+//==================Post message=====================
 router.post("/", async (req, res) => {
   const {message} = req.body;
-
-  // Only reject undefined/null, allow empty string
-  if (message === null) {
+  if (message == null)
     return res.status(400).json({error: "No message provided"});
-  }
 
   try {
-    // Only add to history if it’s not empty
+    // Only add to history if not empty
     if (message.trim() !== "") updateHistory("user", message);
 
-    const reply = await getOpenAIResponse(getHistory());
-    updateHistory("assistant", reply);
+    // Always call AI, even for empty initial message
+    await getAIReply();
     res.json({history: getFilteredHistory()});
   } catch (err) {
     console.error(err);
@@ -37,39 +34,23 @@ router.post("/", async (req, res) => {
   }
 });
 
-//Summarize history
+async function getAIReply() {
+  const reply = await getOpenAIResponse(getHistory());
+  updateHistory("assistant", reply);
+  return reply;
+}
+
+//==============Summarize history====================
 router.post("/summarize", async (req, res) => {
   try {
-    const chatHistory = getHistory();
+    // Only summarizes conversation messages and previous summary message
+    const messagesToSummarize = getMessagesToSummarize(getHistory());
 
-    // Only summarize actual conversation messages
-    const messagesToSummarize = chatHistory.filter((msg) => msg.content);
-
-    if (messagesToSummarize.length === 0) {
+    if (!messagesToSummarize.length)
       return res.json({summary: "No conversation to summarize yet."});
-    }
 
-    // Generate summary
-    const summary = await getOpenAIResponse([
-      {
-        role: "system",
-        content: `You are an AI assistant. Summarize the following conversation briefly and clearly, only using the content of the conversation. Update the current car if needed. 
-          This is how it should be structured:
-          
-          current car:
-            Make: ""
-            Model: ""
-            Year: ""
-            
-          summary: ""`,
-      },
-      ...messagesToSummarize,
-    ]);
-
-    // Clear ALL history before saving the summary
+    const summary = await generateSummary(messagesToSummarize);
     clearHistory();
-
-    // Add a single summary message
     updateHistory(
       "system",
       `Here is a summary of the conversations so far: ${summary}`
@@ -82,10 +63,30 @@ router.post("/summarize", async (req, res) => {
   }
 });
 
-//Helpers
+async function generateSummary(messages) {
+  const systemPrompt = {
+    role: "system",
+    content: `You are an AI assistant. Summarize the following conversation clearly, only using the content of the conversation.
+        Update the current car if needed. Also take note in the summary of any car they are considering buying.
+        This is how it should be structured:
+          
+        current car:
+          Make: ""
+          Model: ""
+          Year: ""
+            
+        summary: ""`,
+  };
 
-function getFilteredHistory() {
-  return filterHistory(getHistory());
+  return await getOpenAIResponse([systemPrompt, ...messages]);
+}
+
+//=============Helper Functions=================
+function getMessagesToSummarize(history) {
+  return history.filter(
+    (msg) =>
+      msg.content && (msg.role !== "system" || msg.content.includes("summary"))
+  );
 }
 
 module.exports = router;
