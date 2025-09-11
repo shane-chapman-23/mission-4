@@ -21,6 +21,7 @@ export default function Chatbot() {
     return res.json();
   }
 
+  //Intializes the chat and gets a summary of previous conversations if they exist
   useEffect(() => {
     async function initializeChat() {
       if (didInit.current) return;

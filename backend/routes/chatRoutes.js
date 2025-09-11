@@ -10,11 +10,6 @@ const {
   clearHistory,
 } = require("../history/chatHistory");
 
-//================Get chat history===================
-router.get("/", async (req, res) => {
-  res.json({history: getFilteredHistory()});
-});
-
 //==================Post message=====================
 router.post("/", async (req, res) => {
   const {message} = req.body;
@@ -27,18 +22,13 @@ router.post("/", async (req, res) => {
 
     // Always call AI, even for empty initial message
     await getAIReply();
+    console.log(getHistory());
     res.json({history: getFilteredHistory()});
   } catch (err) {
     console.error(err);
     res.status(500).json({error: "Failed to get response from OpenAI"});
   }
 });
-
-async function getAIReply() {
-  const reply = await getOpenAIResponse(getHistory());
-  updateHistory("assistant", reply);
-  return reply;
-}
 
 //==============Summarize history====================
 router.post("/summarize", async (req, res) => {
@@ -63,6 +53,20 @@ router.post("/summarize", async (req, res) => {
   }
 });
 
+//=============Helper Functions=================
+function getMessagesToSummarize(history) {
+  return history.filter(
+    (msg) =>
+      msg.content && (msg.role !== "system" || msg.content.includes("summary"))
+  );
+}
+
+async function getAIReply() {
+  const reply = await getOpenAIResponse(getHistory());
+  updateHistory("assistant", reply);
+  return reply;
+}
+
 async function generateSummary(messages) {
   const systemPrompt = {
     role: "system",
@@ -80,13 +84,4 @@ async function generateSummary(messages) {
 
   return await getOpenAIResponse([systemPrompt, ...messages]);
 }
-
-//=============Helper Functions=================
-function getMessagesToSummarize(history) {
-  return history.filter(
-    (msg) =>
-      msg.content && (msg.role !== "system" || msg.content.includes("summary"))
-  );
-}
-
 module.exports = router;
